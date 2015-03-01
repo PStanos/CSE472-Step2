@@ -16,8 +16,20 @@
 CChildView::CChildView()
 {
 	m_wood.LoadFile(L"textures/plank01.bmp");
+	m_worldmap.LoadFile(L"textures/worldmap.bmp");
+	m_marble1.LoadFile(L"textures/marble03.bmp");
+	m_marble2.LoadFile(L"textures/marble10.bmp");
+	m_bluegill.LoadFile(L"models/BLUEGILL.BMP");
 	m_spinAngle = 0;
+	m_lightAngle = 0;
 	m_spinTimer = 0;
+	m_lightSpinTimer = 0;
+	m_camera.Set(20, 10, 50, 0, 0, 0, 0, 1, 0);
+	m_scene = -1;
+	m_sphere.SetTexture(&m_worldmap);
+	m_torus1.SetTexture(&m_marble1);
+	m_torus2.SetTexture(&m_marble2);
+	CreateMesh();
 }
 
 CChildView::~CChildView()
@@ -29,6 +41,13 @@ BEGIN_MESSAGE_MAP(CChildView, COpenGLWnd)
 	ON_WM_PAINT()
 	ON_COMMAND(ID_STEP_SPIN, &CChildView::OnStepSpin)
 	ON_WM_TIMER()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_MOUSEMOVE()
+	ON_WM_RBUTTONDOWN()
+	ON_COMMAND(ID_STEP_SPHERE, &CChildView::OnStepSphere)
+	ON_COMMAND(ID_STEP_MESH, &CChildView::OnStepMesh)
+	ON_COMMAND(ID_STEP_SPINLIGHT, &CChildView::OnStepSpinlight)
+	ON_COMMAND(ID_STEP_TORI, &CChildView::OnStepTori)
 END_MESSAGE_MAP()
 
 
@@ -129,28 +148,9 @@ void CChildView::OnGLDraw(CDC* pDC)
 	//
 	// Set up the camera
 	//
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-
-	// Determine the screen size so we can determine the aspect ratio
 	int width, height;
 	GetSize(width, height);
-	GLdouble aspectratio = GLdouble(width) / GLdouble(height);
-
-	// Set the camera parameters
-	gluPerspective(25.,         // Vertical FOV degrees.
-		aspectratio, // The aspect ratio.
-		10.,         // Near clipping 40/130
-		200.);       // Far clipping
-
-	// Set the camera location
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	gluLookAt(20., 10., 50.,    // eye x,y,z
-		0., 0., 0.,       // center x,y,z
-		0., 1., 0.);      // Up direction
+	m_camera.Apply(width, height);
 
 	//
 	// Some standard parameters
@@ -168,7 +168,10 @@ void CChildView::OnGLDraw(CDC* pDC)
 	glEnable(GL_LIGHT0);
 
 	GLfloat lightpos[] = { 0.5, 2.0, 1.0, 0. };
+	glPushMatrix();
+	glRotated(m_lightAngle, 0., 1., 0.);
 	glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
+	glPopMatrix();
 
 	GLfloat white[] = { 1.f, 1.f, 1.f, 1.f };
 	glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, white);
@@ -190,12 +193,52 @@ void CChildView::OnGLDraw(CDC* pDC)
 	glEnable(GL_LIGHTING);
 
 	const double RED[] = { 0.7, 0.0, 0.0 };
-	glPushMatrix();
-	glTranslated(1.5, 1.5, 1.5);
-	glRotated(m_spinAngle, 0., 0., 1.);
-	glTranslated(-1.5, -1.5, -1.5);
-	Box(3., 3., 3., RED);
-	glPopMatrix();
+
+	switch (m_scene)
+	{
+		case ID_STEP_SPHERE:
+			glPushMatrix();
+			
+			glRotated(m_spinAngle, 0., 0., 1.);
+			m_sphere.Draw();
+
+			glPopMatrix();
+			break;
+		case ID_STEP_MESH:
+			glPushMatrix();
+			glRotated(m_spinAngle / 3, 0, 1, 0);
+
+			glPushMatrix();
+			glTranslated(0, 4, 0);
+			m_mesh.Draw();
+			glPopMatrix();
+
+			//m_surface.Draw();
+
+			m_fish.Draw();
+
+			glPopMatrix();
+			break;
+		case ID_STEP_TORI:
+			glPushMatrix();
+			m_torus1.Draw();
+			glPopMatrix();
+
+			glPushMatrix();
+			glRotated(90., 1., 0., 0.);
+			glTranslated(5., 0., 0.);
+			m_torus2.Draw();
+			glPopMatrix();
+
+			break;
+		default:
+			glPushMatrix();
+			glTranslated(1.5, 1.5, 1.5);
+			glRotated(m_spinAngle, 0., 0., 1.);
+			glTranslated(-1.5, -1.5, -1.5);
+			Box(3., 3., 3., RED);
+			glPopMatrix();
+	}
 }
 
 
@@ -215,10 +258,148 @@ void CChildView::OnStepSpin()
 }
 
 
+void CChildView::OnStepSpinlight()
+{
+	if (m_lightSpinTimer == 0)
+	{
+		// Create the timer
+		m_lightSpinTimer = SetTimer(2, 30, NULL);
+	}
+	else
+	{
+		// Destroy the timer
+		KillTimer(m_lightSpinTimer);
+		m_lightSpinTimer = 0;
+	}
+}
+
+
 void CChildView::OnTimer(UINT_PTR nIDEvent)
 {
-	m_spinAngle += 5;       // 5 degrees every 30ms about
+	if (nIDEvent == m_spinTimer)
+	{
+		m_spinAngle += 5;       // 5 degrees every 30ms about
+	}
+	else if (nIDEvent == m_lightSpinTimer)
+	{
+		m_lightAngle += 5;
+	}
+
 	Invalidate();
 
 	COpenGLWnd::OnTimer(nIDEvent);
+}
+
+
+void CChildView::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	m_camera.MouseDown(point.x, point.y);
+
+	COpenGLWnd::OnLButtonDown(nFlags, point);
+}
+
+
+void CChildView::OnMouseMove(UINT nFlags, CPoint point)
+{
+	if (m_camera.MouseMove(point.x, point.y, nFlags))
+		Invalidate();
+
+	COpenGLWnd::OnMouseMove(nFlags, point);
+}
+
+
+void CChildView::OnRButtonDown(UINT nFlags, CPoint point)
+{
+	m_camera.MouseDown(point.x, point.y, 2);
+
+	COpenGLWnd::OnRButtonDown(nFlags, point);
+}
+
+
+void CChildView::OnStepSphere()
+{
+	m_scene = ID_STEP_SPHERE;
+	Invalidate();
+}
+
+
+void CChildView::OnStepMesh()
+{
+	m_scene = ID_STEP_MESH;
+	Invalidate();
+}
+
+void CChildView::OnStepTori()
+{
+	m_scene = ID_STEP_TORI;
+	Invalidate();
+}
+
+void CChildView::CreateMesh()
+{
+	double v[8][4] = { { 0, 0, 2, 1 }, { 2, 0, 2, 1 }, { 2, 2, 2, 1 }, { 0, 2, 2, 1 },
+	{ 0, 0, 0, 1 }, { 2, 0, 0, 1 }, { 2, 2, 0, 1 }, { 0, 2, 0, 1 } };
+	double n[6][4] = { { 0, 0, 1, 0 }, { 1, 0, 0, 0 }, { 0, 0, -1, 0 },
+	{ -1, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, -1, 0, 0 } };
+
+	for (int i = 0; i<8; i++)
+		m_mesh.AddVertex(v[i]);
+
+	for (int i = 0; i<6; i++)
+		m_mesh.AddNormal(n[i]);
+
+	m_mesh.AddFlatQuad(0, 1, 2, 3, 0);
+	m_mesh.AddFlatQuad(1, 5, 6, 2, 1);
+	m_mesh.AddFlatQuad(5, 4, 7, 6, 2);
+	m_mesh.AddFlatQuad(4, 0, 3, 7, 3);
+	m_mesh.AddFlatQuad(3, 2, 6, 7, 4);
+	m_mesh.AddFlatQuad(0, 4, 5, 1, 5);
+
+	//
+	// Create a surface
+	//
+
+	double wid = 20;        // 20 units wide
+	double dep = 20;        // 20 units deep
+	int nW = 15;            // Number of quads across
+	int nD = 15;            // Number of quads deep
+	const double PI = 3.141592653;
+
+	// Create the vertices and -temporary- normals
+	// Note that the surface is nW+1 by nD+1 vertices
+	for (int j = 0; j <= nD; j++)
+	{
+		for (int i = 0; i <= nW; i++)
+		{
+			double x = double(i) / double(nW) * wid - wid / 2;
+			double z = double(j) / double(nD) * dep - dep / 2;
+			double y = sin(double(i) / double(nW) * 4 * PI) +
+				sin(double(j) / double(nD) * 3 * PI);
+
+			CGrVector normal(-4 * PI / wid * cos(double(i) / double(nW) * 4 * PI),
+				1., -3 * PI / dep * cos(double(j) / double(nD) * 3 * PI));
+			normal.Normalize();
+
+
+			m_surface.AddVertex(CGrVector(x, y, z, 1));
+			m_surface.AddNormal(normal);
+		}
+	}
+
+	// Create the quadrilaterals
+	for (int j = 0; j<nD; j++)
+	{
+		for (int i = 0; i<nW; i++)
+		{
+			int a = j * (nW + 1) + i;
+			int b = a + nW + 1;
+			int c = b + 1;
+			int d = a + 1;
+
+			m_surface.AddQuad(a, b, c, d);
+		}
+	}
+
+	m_fish.LoadOBJ("models\\fish4.obj");
+	m_fish.SetTexture(&m_bluegill);
 }

@@ -26,6 +26,8 @@ CTorus::CTorus(void)
 
     // Number of steps in the small radius
     m_steps2 = 20;
+
+	m_texture = NULL;
 }
 
 
@@ -44,6 +46,13 @@ CTorus::~CTorus(void)
 //
 void CTorus::Draw()
 {
+	if (m_texture != NULL)
+	{
+		glEnable(GL_TEXTURE_2D);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		glBindTexture(GL_TEXTURE_2D, m_texture->TexName());
+	}
+
     // How large are the angular steps in radians
     const double step1r = 2. * GR_PI / m_steps1;
     const double step2r = 2. * GR_PI / m_steps2;
@@ -64,31 +73,42 @@ void CTorus::Draw()
         {
             // We need to know the corners
             double n[3], v[3];
+			float texU, texV;
 
             glBegin(GL_QUADS);
-            TorusVertex(a1a, m_r1, a2a, m_r2, v, n);
-            glNormal3dv(n);
+			TorusVertex(a1a, m_r1, a2a, m_r2, v, n, texU, texV);
+			glTexCoord2f(texU, texV);
+			
+			glNormal3dv(n);
 
             glVertex3dv(v);
 
-            TorusVertex(a1b, m_r1, a2a, m_r2, v, n);
-            glNormal3dv(n);
+			TorusVertex(a1b, m_r1, a2a, m_r2, v, n, texU, texV);
+            
+			glTexCoord2f(texU, texV);
+			glNormal3dv(n);
 
             glVertex3dv(v);
 
-            TorusVertex(a1b, m_r1, a2b, m_r2, v, n);
-            glNormal3dv(n);
+			TorusVertex(a1b, m_r1, a2b, m_r2, v, n, texU, texV);
+            
+			glTexCoord2f(texU, texV);
+			glNormal3dv(n);
 
             glVertex3dv(v);
 
-            TorusVertex(a1a, m_r1, a2b, m_r2, v, n);
-            glNormal3dv(n);
+			TorusVertex(a1a, m_r1, a2b, m_r2, v, n, texU, texV);
+            
+			glTexCoord2f(texU, texV);
+			glNormal3dv(n);
 
             glVertex3dv(v);
 
             glEnd();
         }
     }
+
+	glDisable(GL_TEXTURE_2D);
 }
 
 
@@ -106,7 +126,7 @@ void CTorus::Draw()
 //
 
 void CTorus::TorusVertex(double a1, double r1, double a2, double r2, 
-                         double *v, double *n)
+                         double *v, double *n, float &texU, float &texV)
 {
     // Some sines and cosines we'll need.
     double ca1 = cos(a1);
@@ -127,4 +147,8 @@ void CTorus::TorusVertex(double a1, double r1, double a2, double r2,
     v[0] = centerx + r2 * n[0];
     v[1] = r2 * n[1];
     v[2] = centerz + r2 * n[2];
+
+	// And the texture coordinate
+	texU = a1 / (2.0 * GR_PI) * 10.0;
+	texV = a2 / (2.0 * GR_PI) * 2.0;
 }

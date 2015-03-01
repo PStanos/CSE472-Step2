@@ -27,6 +27,13 @@ CSphere::~CSphere(void)
 
 void CSphere::Draw(int recurse)
 {
+	if (m_texture != NULL)
+	{
+		glEnable(GL_TEXTURE_2D);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		glBindTexture(GL_TEXTURE_2D, m_texture->TexName());
+	}
+
    GLdouble a[] = {1, 0, 0};
    GLdouble b[] = {0, 0, -1};
    GLdouble c[] = {-1, 0, 0};
@@ -42,6 +49,8 @@ void CSphere::Draw(int recurse)
    SphereFace(recurse, m_radius, b, a, f);
    SphereFace(recurse, m_radius, c, b, f);
    SphereFace(recurse, m_radius, d, c, f);
+
+   glDisable(GL_TEXTURE_2D);
 }
 
 
@@ -67,13 +76,44 @@ void CSphere::SphereFace(int p_recurse, double p_radius, double *a,
     }
     else 
     {
-       glBegin(GL_TRIANGLES);
-          glNormal3dv(a);
-          glVertex3d(a[0] * m_radius, a[1] * m_radius, a[2] * m_radius);
-          glNormal3dv(b);
-          glVertex3d(b[0] * m_radius, b[1] * m_radius, b[2] * m_radius);
-          glNormal3dv(c);
-          glVertex3d(c[0] * m_radius, c[1] * m_radius, c[2] * m_radius);
+		glBegin(GL_TRIANGLES);
+			// What's the texture coordinate for this normal?
+			double u1 = atan2(a[0], a[2]) / (2. * GR_PI) + 0.5;
+			double v1 = asin(a[1]) / GR_PI + .5;
+			glTexCoord2f(u1, v1);
+
+			glNormal3dv(a);
+			glVertex3d(a[0] * m_radius, a[1] * m_radius, a[2] * m_radius);
+
+			double u2 = atan2(b[0], b[2]) / (2. * GR_PI) + 0.5;
+			double v2 = asin(b[1]) / GR_PI + .5;
+			
+			// Test for this coordinate on the other side of the
+			// texture from the first coordinate.
+			if (u2 < 0.75 && u1 > 0.75)
+				u2 += 1.0;
+			else if (u2 > 0.75 && u1 < 0.75)
+				u2 -= 1.0;
+			
+			glTexCoord2f(u2, v2);
+
+			glNormal3dv(b);
+			glVertex3d(b[0] * m_radius, b[1] * m_radius, b[2] * m_radius);
+
+			double u3 = atan2(c[0], c[2]) / (2. * GR_PI) + 0.5;
+			double v3 = asin(c[1]) / GR_PI + .5;
+			
+			// Test for this coordinate on the other side of the
+			// texture from the second coordinate.
+			if (u3 < 0.75 && u2 > 0.75)
+				u3 += 1.0;
+			else if (u3 > 0.75 && u2 < 0.75)
+				u3 -= 1.0;
+			
+			glTexCoord2f(u3, v3);
+
+			glNormal3dv(c);
+			glVertex3d(c[0] * m_radius, c[1] * m_radius, c[2] * m_radius);
        glEnd();
     }
 }

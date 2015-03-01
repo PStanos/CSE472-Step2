@@ -1,5 +1,7 @@
 #pragma once
 
+#include "graphics\GrTexture.h"
+
 //! This class allows you to draw a torus
 
 class CTorus
@@ -45,9 +47,12 @@ public:
     //! Draw the torus
     void Draw();
 
+	//! Set the texture to use
+	void SetTexture(CGrTexture * texture) { m_texture = texture; }
+
 private:
     void TorusVertex(double a1, double r1, double a2, double r2, 
-                         double *v, double *n);
+                         double *v, double *n, float &texU, float &texV);
                          
     //! Large radius of the torus
     //! This is the radius of the entire torus
@@ -62,5 +67,8 @@ private:
 
     //! Number of steps in the small radius
     double  m_steps2;
+
+	//! The texture to use on the torus
+	CGrTexture *m_texture;
 };
 
