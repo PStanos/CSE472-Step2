@@ -8,6 +8,7 @@ using namespace std;
 
 CMesh::CMesh()
 {
+    m_texture = NULL;
 }
 
 
@@ -17,27 +18,29 @@ CMesh::~CMesh()
 
 void CMesh::Draw()
 {
-	if (m_texture != NULL)
-	{
-		glEnable(GL_TEXTURE_2D);
-		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-		glBindTexture(GL_TEXTURE_2D, m_texture->TexName());
-	}
+    if ( m_texture != NULL )
+    {
+        glEnable( GL_TEXTURE_2D );
+        glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+        glBindTexture( GL_TEXTURE_2D, m_texture->TexName() );
+    }
 
 	glBegin(GL_TRIANGLES);
+
 	for (PTV v = m_triangles.begin(); v != m_triangles.end(); v++)
 	{
 		if (v->t != -1)
 		{
-			glTexCoord2dv(m_tvertices[v->t]);
+			glTexCoord2f(m_tvertices[v->t].X(), m_tvertices[v->t].Y());
 		}
 
 		glNormal3dv(m_normals[v->n]);
 		glVertex3dv(m_vertices[v->v]);
 	}
+
 	glEnd();
 
-	glDisable(GL_TEXTURE_2D);
+    glDisable( GL_TEXTURE_2D );
 }
 
 void CMesh::AddTriangleVertex(int v, int n, int t)
@@ -118,7 +121,7 @@ void CMesh::LoadOBJ(const char *filename)
 		}
 		else if (code == "vt")
 		{
-			double u, v;
+			float u, v;
 			lstr >> u >> v;
 			AddTexCoord(CGrVector(u, v));
 		}

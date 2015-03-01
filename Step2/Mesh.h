@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graphics/GrVector.h"
-#include "graphics\GrTexture.h"
+#include "graphics/GrTexture.h"
 #include <vector>
 
 class CMesh

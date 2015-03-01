@@ -209,22 +209,29 @@ void CChildView::OnGLDraw(CDC* pDC)
 			glRotated(m_spinAngle / 3, 0, 1, 0);
 
 			glPushMatrix();
-			glTranslated(0, 4, 0);
+			glTranslated(-7., 8., 0.);
 			m_mesh.Draw();
 			glPopMatrix();
 
-			//m_surface.Draw();
+			m_surface.Draw();
 
+            glPushMatrix();
+            glTranslated( 0., 5., 0. );
+            glRotated( -30., 0., 0., 1. );
+            glRotated( -90., 1., 0., 0. );
 			m_fish.Draw();
+            glPopMatrix();
 
 			glPopMatrix();
 			break;
 		case ID_STEP_TORI:
 			glPushMatrix();
+            glRotated( m_spinAngle, 0., 0., 1. );
 			m_torus1.Draw();
 			glPopMatrix();
 
 			glPushMatrix();
+            glRotated( m_spinAngle, 0., 0., 1. );
 			glRotated(90., 1., 0., 0.);
 			glTranslated(5., 0., 0.);
 			m_torus2.Draw();
